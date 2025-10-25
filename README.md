@@ -1,163 +1,140 @@
-# Flow𝕏 — See Who Truly Drives Your X Presence
+# Flow𝕏
 
 ![Landing Page](./public/image.png)
 
-Flow𝕏 surfaces the X (Twitter) followers who amplify your reach, sustain engagement, and shape influence. The current milestone wires the full auth + data pipeline, caches follower data to stay within rate limits, and exposes a clean dashboard snapshot so future UI work can build on a reliable data layer.
+Flow𝕏 helps you identify the X (Twitter) followers who most effectively amplify your reach, sustain engagement, and build your influence. This project provides a complete authentication and data pipeline, caching follower data to respect API rate limits. The dashboard offers a clean snapshot of your follower data, creating a reliable foundation for future features.
+
+## Table of Contents
+
+-   [Highlights](#highlights)
+-   [Tech Stack](#tech-stack)
+-   [System Overview](#system-overview)
+-   [Folder Guide](#folder-guide)
+-   [Getting Started](#getting-started)
+-   [Caching Strategy](#caching-strategy)
+-   [Developer Notes](#developer-notes)
+-   [Future Ideas](#future-ideas)
 
 ## Highlights
 
-- **OAuth flow with refresh support** using the official [twitter-api-sdk](https://github.com/twitterdev/twitter-api-typescript-sddk) and cookie-based token storage.
-- **Server-side follower ingestion** (`app/api/followers/route.ts`) with five-minute in-memory caching keyed by user ID to avoid rate-limit thrash.
-- **TanStack Query integration** in the dashboard so the followers dataset is instantly available client-side, including helpful metadata describing cache freshness.
-- **Home + dashboard storytelling** aligned with the product tagline “see who truly drives your X presence,” ready for future insight visualizations.
-- **Polished UI shell** powered by [Next.js App Router](https://nextjs.org/docs/app), [Tailwind CSS](https://tailwindcss.com), and [@tabler/icons-react](https://tabler.io/icons) for consistent visuals.
+-   **Secure Authentication**: Implements the official X OAuth 2.0 flow with refresh token support, using cookie-based storage for security.
+-   **Efficient Data Ingestion**: A server-side process fetches follower data with a five-minute in-memory cache to prevent hitting rate limits.
+-   **Responsive Dashboard**: Integrates with TanStack Query to make the follower dataset instantly available on the client, including metadata about cache freshness.
+-   **Clear User Experience**: The home and dashboard pages are designed to clearly communicate the product's value.
+-   **Modern UI**: Built with the Next.js App Router, Tailwind CSS, and Tabler Icons for a polished and consistent look.
 
 ## Tech Stack
 
-- [Next.js 14 App Router](https://nextjs.org/docs/app) with Edge-ready serverless routes
-- [React 18](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
-- [@tanstack/react-query](https://tanstack.com/query/latest) for client-side caching & revalidation
-- [twitter-api-sdk](https://github.com/twitterdev/twitter-api-typescript-sdk) for X API access
-- [Tailwind CSS](https://tailwindcss.com) & [Geist Mono](https://vercel.com/fonts/geist) for styling
-- [Bun](https://bun.sh) (optional) for fast local tooling
+-   [Next.js 14 App Router](https://nextjs.org/docs/app)
+-   [React 18](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+-   [@tanstack/react-query](https://tanstack.com/query/latest)
+-   [twitter-api-sdk](https://github.com/twitterdev/twitter-api-typescript-sdk)
+-   [Tailwind CSS](https://tailwindcss.com) & [Geist Mono](https://vercel.com/fonts/geist)
+-   [Bun](https://bun.sh) (optional)
 
 ## System Overview
 
 ```mermaid
 sequenceDiagram
-	autonumber
-	actor User
-	participant Browser
-	participant NextServer as Next.js Server
-	participant Twitter as X API
+    autonumber
+    actor User
+    participant Browser
+    participant NextServer as Next.js Server
+    participant Twitter as X API
 
-	User->>Browser: Visit / (home)
-	Browser->>NextServer: POST /login action
-	NextServer->>Twitter: Redirect to OAuth consent
-	Twitter-->>Browser: OAuth code
-	Browser->>NextServer: GET /callback?code=...
-	NextServer->>Twitter: Exchange code for token
-	NextServer->>Browser: Set cookies (token, userId)
-	Browser->>NextServer: Navigate to /dashboard
-	Browser->>NextServer: GET /api/followers
-	NextServer->>NextServer: Check in-memory cache (5 min TTL)
-	alt Cache hit
-		NextServer-->>Browser: Followers + meta (source=cache)
-	else Cache miss
-		NextServer->>Twitter: Fetch followers (usersIdFollowers)
-		NextServer->>NextServer: Store in cache
-		NextServer-->>Browser: Followers + meta (source=live)
-	end
-	Browser->>Browser: TanStack Query stores fodllowers dataset
+    User->>Browser: Visit / (home)
+    Browser->>NextServer: POST /login action
+    NextServer->>Twitter: Redirect to OAuth consent
+    Twitter-->>Browser: OAuth code
+    Browser->>NextServer: GET /callback?code=...
+    NextServer->>Twitter: Exchange code for token
+    NextServer->>Browser: Set cookies (token, userId)
+    Browser->>NextServer: Navigate to /dashboard
+    Browser->>NextServer: GET /api/followers
+    NextServer->>NextServer: Check in-memory cache (5 min TTL)
+    alt Cache hit
+        NextServer-->>Browser: Followers + meta (source=cache)
+    else Cache miss
+        NextServer->>Twitter: Fetch followers (usersIdFollowers)
+        NextServer->>NextServer: Store in cache
+        NextServer-->>Browser: Followers + meta (source=live)
+    end
+    Browser->>Browser: TanStack Query stores followers dataset
 ```
 
 ## Folder Guide
 
-- `app/layout.tsx` — global metadata, font, and `QueryClientProvider` wiring
-- `app/page.tsx` — marketing hero with refreshed messaging
-- `app/callback/route.ts` — OAuth redirect handler, persists token cookie
-- `app/dashboard/page.tsx` — dashboard shell, renders follower snapshot card
-- `app/dashboard/followers-snapshot.tsx` — client component reading the TanStack Query cache
-- `app/api/followers/route.ts` — cached follower endpoint with token refresh + cookie updates
-- `lib/twitter.ts` — OAuth helpers, token utilities, and follower fetcher
+-   `app/layout.tsx`: Global layout, metadata, and font configuration.
+-   `app/page.tsx`: The main landing page.
+-   `app/callback/route.ts`: Handles the OAuth redirect and sets the token cookie.
+-   `app/dashboard/page.tsx`: The main dashboard page that displays the follower snapshot.
+-   `app/dashboard/followers-snapshot.tsx`: A client component that reads data from the TanStack Query cache.
+-   `app/api/followers/route.ts`: The API endpoint for fetching follower data, with caching and token refresh logic.
+-   `lib/twitter.ts`: Contains helper functions for OAuth, token management, and data fetching.
 
 ## Getting Started
 
-1. **Clone & install**
+1.  **Clone & Install**
 
-   ```bash
-   bun install # or npm install / pnpm install / yarn
-   ```
+    ```bash
+    bun install # or npm install / pnpm install / yarn
+    ```
 
-2. **Configure environment** — copy `.env.example` (if present) to `.env.local` and supply:
+2.  **Configure Environment**
 
-   ```bash
-   X_CLIENT_ID="your client id"
-   X_CLIENT_SECRET="your client secret"
-   X_STATE_STRING="random-verifier"
-   X_CODE_CHALLENGE="matching-challenge"
-   ```
+    Copy the `.env.example` file to a new file named `.env.local` and add your X API credentials.
 
-   - Register an OAuth 2.0 app at [developer.twitter.com](https://developer.twitter.com/en/portal/dashboard) with redirect URL `http://localhost:3000/callback`.
+    ```bash
+    X_CLIENT_ID="your client id"
+    X_CLIENT_SECRET="your client secret"
+    X_STATE_STRING="random-verifier"
+    X_CODE_CHALLENGE="matching-challenge"
+    ```
 
-3. **Run the dev server**
+    You can get these credentials by registering an OAuth 2.0 app at the [X Developer Portal](https://developer.twitter.com/en/portal/dashboard). Set the redirect URL to `http://localhost:3000/callback`.
 
-   ```bash
-   bun dev # or npm run dev / pnpm dev / yarn dev
-   ```
+3.  **Run the Dev Server**
 
-4. **Browse**
-   - Home: http://localhost:3000
-   - Dashboard: http://localhost:3000/dashboard _(requires logging in with X)_
-   - Followers API: http://localhost:3000/api/followers _(JSON output with meta)_
+    ```bash
+    bun dev # or npm run dev / pnpm dev / yarn dev
+    ```
+
+4.  **Browse the App**
+    -   Home: http://localhost:3000
+    -   Dashboard: http://localhost:3000/dashboard (requires login)
+    -   Followers API: http://localhost:3000/api/followers (returns JSON)
 
 ## Caching Strategy
 
 ```mermaid
 flowchart TD
-	A[Client Request /api/followers] --> B{In-memory Cache hit?}
-	B -- Yes --> C[Return cached payload + source=cache]
-	B -- No --> D[Fetch from X API]
-	D --> E[Persist cache (TTL 5 min)]
-	E --> F[Return payload + source=live]
-	C --> G[TanStack Query stores data]
-	F --> G
-	G --> H[Dashboard snapshot + future insights]
+    A[Client Request /api/followers] --> B{In-memory Cache hit?}
+    B -- Yes --> C[Return cached payload + source=cache]
+    B -- No --> D[Fetch from X API]
+    D --> E[Persist cache TTL 5 min]
+    E --> F[Return payload + source=live]
+    C --> G[TanStack Query stores data]
+    F --> G
+    G --> H[Dashboard snapshot + future insights]
 ```
 
-- Cache entries are keyed by the authenticated `userId` and expire after five minutes.
-- Responses include metadata so the client knows whether data is fresh (`live`) or reused (`cache`).
-- TanStack Query mirrors the server cache, providing optimistic reuse across components without additional requests.
+-   Cache entries are unique to each authenticated user and expire after five minutes.
+-   API responses include metadata, so the client knows if the data is from the `live` API or the `cache`.
+-   TanStack Query mirrors the server cache on the client, preventing redundant requests between components.
 
 ## Developer Notes
 
-- **Inspect data**: open React Query Devtools or run `queryClient.getQueryData(["followers"])` in the browser console.
-- **Rate limits**: the in-memory cache drastically reduces calls to `usersIdFollowers` and includes token auto-refresh on 401/expired tokens.
-- **UI polish**: the dashboard currently focuses on data readiness; future tasks include cohort breakdowns, influence scoring, and richer visualizations.
+-   **Inspect Data**: You can inspect the cached data by opening the React Query Devtools or by running `queryClient.getQueryData(["followers"])` in your browser's console.
+-   **Rate Limits**: The in-memory cache significantly reduces API calls. The system also automatically refreshes expired tokens.
+-   **UI Polish**: The current dashboard is focused on data availability. Future work will involve adding more detailed visualizations and influence scoring.
 
 ## Future Ideas
 
-- Compare follower influence scores over time
-- Surface reach/engagement trendlines directly in the dashboard
-- Export insights for cross-channel planning
-- Integrate notifications when key followers engage
+-   Track follower influence scores over time.
+-   Display reach and engagement trends on the dashboard.
+-   Allow exporting insights for use in other tools.
+-   Add notifications for when key followers engage with your content.
 
 ---
 
 Maintained by [Satyam Vyas](https://github.com/SatyamVyas04). Contributions and ideas are always welcome!
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
-## Getting Started
-
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
